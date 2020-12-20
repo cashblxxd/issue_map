@@ -3,3 +3,4 @@ pymongo
 gspread
 python-telegram-bot
 gunicorn
+dnspython
