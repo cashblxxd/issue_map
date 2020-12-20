@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Балун и хинт</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=80a9eeab-c33c-4201-a8dc-d5279d554832" type="text/javascript"></script>
+    <script type="text/javascript">
+        ymaps.ready(init);
+
+        function init () {
+            var myMap = new ymaps.Map("map", {
+                    center: [54.83, 37.11],
+                    zoom: 5
+                }, {
+                    searchControlProvider: 'yandex#search'
+                });
+            {% for i in marks %}
+                var myPlacemark = new ymaps.Placemark([ {{ i["latitude"] }}, {{ i["longitude"] }} ], {
+                        balloonContentHeader: "{{ i['issue_id'] }}",
+                        balloonContentBody: "Дата создания: {{ i['created_at'] }} Описание: {{ i['description'] }} <img src='{{ i['photo_link'] }}'>"
+                    });
+
+                myMap.geoObjects.add(myPlacemark);
+            {% endfor %}
+        }
+    </script>
+    <style>
+        html, body, #map {
+            width: 100%; height: 100%; padding: 0; margin: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+</body>
+</html>
