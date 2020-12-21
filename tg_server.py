@@ -114,7 +114,7 @@ def push_upload_job():
                 "longitude": longitude,
                 "latitude": latitude,
                 "description": description,
-                "photo_link": f"https://statpad-logs.s3.amazonaws.com/{filename}"
+                "photo_link": filename
             })
             print("success")
         except Exception as e:
