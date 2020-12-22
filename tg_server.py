@@ -188,7 +188,7 @@ def texter(update, context):
                 filename = f"{uid}-{el}-{photo.file_id}.jpg"
                 photo.get_file().download(filename)
                 moderation_queue.put([el, ''.join(str(datetime.now()).split(":")[::-1]), context.bot_data[uid]["longitude"], context.bot_data[uid]["latitude"], context.bot_data["description"], filename])
-                update.message.reply_text(f'Отлично.\n Спасибо, что хотите сделать наш город лучше.\n Свою проблему вы сможете увидеть по ссылке: issuemaap.herokuapp.com \nНа основе вашего обращения наша команда сформирует официальное обращение к городским властям.')
+                update.message.reply_text(f'Отлично.\nСпасибо, что хотите сделать наш город лучше.\nСвою проблему вы сможете увидеть по ссылке: issuemaap.herokuapp.com\nНа основе вашего обращения наша команда сформирует официальное обращение к городским властям.')
         except Exception as e:
             print(e)
             pass
