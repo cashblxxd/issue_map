@@ -169,14 +169,14 @@ def texter(update, context):
             context.bot_data[uid]["longitude"] = location.longitude
             context.bot_data[uid]["latitude"] = location.latitude
             context.bot_data[uid]["status"] = "description"
-            update.message.reply_text('Опишите найденную проблему.', reply_markup=ReplyKeyboard())
+            update.message.reply_text('Опишите найденную проблему.', reply_markup=ReplyKeyboardRemove())
         else:
             update.message.reply_text('Прикрепите геолокацию / место, где находится ваша проблема. (или прикрепите геолокацию вложением)', reply_markup=ReplyKeyboardMarkup([
                 [KeyboardButton('Отправить', request_location=True)]
             ]), one_time_keyboard=True)
     elif status == "description":
         context.bot_data["description"] = update.message.text
-        context.bot_data[uid]["status"] = "photo"
+        context.bot_data[uid]["status"] = "photo"s
         update.message.reply_text('Прикрепите фото с проблемой.')
     elif status == "photo":
         try:
@@ -335,6 +335,11 @@ def resume_updaters(update, context):
         update.message.reply_text('Загрузки возобновлены')
     else:
         update.message.reply_text('Вы - не администратор')
+
+
+def print_moderators(update, context):
+    if str(update.message.chat_id) in ALLOWED_UIDS:
+        update.message.reply_text("[" + ", ".join(["\"{i}\"" for i in moderators]) + "]")
 
 
 def main():
