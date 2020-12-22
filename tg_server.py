@@ -176,7 +176,7 @@ def texter(update, context):
             ]), one_time_keyboard=True)
     elif status == "description":
         context.bot_data["description"] = update.message.text
-        context.bot_data[uid]["status"] = "photo"s
+        context.bot_data[uid]["status"] = "photo"
         update.message.reply_text('Прикрепите фото с проблемой.')
     elif status == "photo":
         try:
