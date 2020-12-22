@@ -339,7 +339,7 @@ def resume_updaters(update, context):
 
 def print_moderators(update, context):
     if str(update.message.chat_id) in ALLOWED_UIDS:
-        update.message.reply_text("[" + ", ".join(["\"{i}\"" for i in moderators]) + "]")
+        update.message.reply_text("[" + ", ".join([f"\"{i}\"" for i in moderators]) + "]")
 
 
 def main():
