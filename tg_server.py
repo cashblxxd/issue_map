@@ -137,7 +137,7 @@ def start(update, context):
     if uid not in context.bot_data:
         context.bot_data[uid] = {}
     context.bot_data[uid]["status"] = "ready"
-    update.message.reply_text("Привет!", reply_markup=get_menu())
+    update.message.reply_text("Приветствую вас, жители Дагестана. Я - бот. С помощью меня вы сможете зафиксировать городскую проблему, и я со своей командой сделаю всё, чтобы ваша проблема решилась. Начинаем?", reply_markup=get_menu())
 
 
 def texter(update, context):
@@ -159,7 +159,7 @@ def texter(update, context):
     if status == "ready":
         text = update.message.text
         if text == "Отправить отчёт":
-            update.message.reply_text('Нажмите «Отправить» (или прикрепите геолокацию вложением)', reply_markup=ReplyKeyboardMarkup([
+            update.message.reply_text('Прикрепите геолокацию / место, где находится ваша проблема. (или прикрепите геолокацию вложением)', reply_markup=ReplyKeyboardMarkup([
                 [KeyboardButton('Отправить', request_location=True)]
             ]), one_time_keyboard=True)
         context.bot_data[uid]["status"] = "place"
@@ -169,15 +169,15 @@ def texter(update, context):
             context.bot_data[uid]["longitude"] = location.longitude
             context.bot_data[uid]["latitude"] = location.latitude
             context.bot_data[uid]["status"] = "description"
-            update.message.reply_text('Опишите событие')
+            update.message.reply_text('Опишите найденную проблему.', reply_markup=ReplyKeyboard())
         else:
-            update.message.reply_text('Нажмите «Отправить» (или прикрепите геолокацию вложением)', reply_markup=ReplyKeyboardMarkup([
+            update.message.reply_text('Прикрепите геолокацию / место, где находится ваша проблема. (или прикрепите геолокацию вложением)', reply_markup=ReplyKeyboardMarkup([
                 [KeyboardButton('Отправить', request_location=True)]
             ]), one_time_keyboard=True)
     elif status == "description":
         context.bot_data["description"] = update.message.text
         context.bot_data[uid]["status"] = "photo"
-        update.message.reply_text('Пришлите фотографию события')
+        update.message.reply_text('Прикрепите фото с проблемой.')
     elif status == "photo":
         try:
             photo = update.message.photo[-1]
@@ -187,8 +187,8 @@ def texter(update, context):
                 confirmation_numbers.remove(el)
                 filename = f"{uid}-{el}-{photo.file_id}.jpg"
                 photo.get_file().download(filename)
-                moderation_queue.put([el, str(datetime.now()), context.bot_data[uid]["longitude"], context.bot_data[uid]["latitude"], context.bot_data["description"], filename])
-                update.message.reply_text(f'Подтверждение отправлено, спасибо! Ваш номер: {el}')
+                moderation_queue.put([el, ''.join(str(datetime.now()).split(":")[::-1]), context.bot_data[uid]["longitude"], context.bot_data[uid]["latitude"], context.bot_data["description"], filename])
+                update.message.reply_text(f'Отлично.\n Спасибо, что хотите сделать наш город лучше.\n Свою проблему вы сможете увидеть по ссылке: issuemaap.herokuapp.com \nНа основе вашего обращения наша команда сформирует официальное обращение к городским властям.')
         except Exception as e:
             print(e)
             pass

@@ -17,7 +17,7 @@
             {% for i in marks %}
                 var myPlacemark = new ymaps.Placemark([ {{ i["latitude"] }}, {{ i["longitude"] }} ], {
                         balloonContentHeader: "{{ i['issue_id'] }}",
-                        balloonContentBody: "Дата создания: {{ i['created_at'] }} Описание: {{ i['description'] }} <img src='{{ i['photo_link'] }}'>"
+                        balloonContentBody: "Дата создания: {{ i['created_at'] }} Описание: {{ i['description'] }} <img src='{{ i['photo_link'] }}' width='95%'>"
                     });
 
                 myMap.geoObjects.add(myPlacemark);
