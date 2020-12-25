@@ -66,7 +66,7 @@ except Exception as e:
 
 def get_menu():
     return ReplyKeyboardMarkup([
-        [KeyboardButton("Отправить отчёт")]
+        [KeyboardButton("Начать")]
     ])
 
 
@@ -106,7 +106,8 @@ def push_upload_job():
     print("gotta push upload")
     while JOBS_ALLOWED and not upload_queue.empty():
         row = upload_queue.get()
-        el, dtime, longitude, latitude, description, filename = row
+        el, dtime, longitude, latitude, description, filenames = row
+        print(filenames)
         try:
             mgclient.issues_data.issues.insert_one({
                 "issue_id": el,
@@ -114,7 +115,7 @@ def push_upload_job():
                 "longitude": longitude,
                 "latitude": latitude,
                 "description": description,
-                "photo_link": filename
+                "photo_links": filenames
             })
             print("success")
         except Exception as e:
@@ -158,7 +159,7 @@ def texter(update, context):
     print(status)
     if status == "ready":
         text = update.message.text
-        if text == "Отправить отчёт":
+        if text == "Начать":
             update.message.reply_text('Прикрепите геолокацию / место, где находится ваша проблема. (или прикрепите геолокацию вложением)', reply_markup=ReplyKeyboardMarkup([
                 [KeyboardButton('Отправить', request_location=True)]
             ]), one_time_keyboard=True)
@@ -179,19 +180,38 @@ def texter(update, context):
         context.bot_data[uid]["status"] = "photo"
         update.message.reply_text('Прикрепите фото с проблемой.')
     elif status == "photo":
-        try:
-            photo = update.message.photo[-1]
-            if photo:
-                print(1)
-                el = random.sample(confirmation_numbers, 1)[0]
-                confirmation_numbers.remove(el)
-                filename = f"{uid}-{el}-{photo.file_id}.jpg"
-                photo.get_file().download(filename)
-                moderation_queue.put([el, ':'.join(str(datetime.now()).split(":")[:-1]), context.bot_data[uid]["longitude"], context.bot_data[uid]["latitude"], context.bot_data["description"], filename])
-                update.message.reply_text(f'Отлично.\nСпасибо, что хотите сделать наш город лучше.\nСвою проблему вы сможете увидеть по ссылке: issuemaap.herokuapp.com\nНа основе вашего обращения наша команда сформирует официальное обращение к городским властям.')
-        except Exception as e:
-            print(e)
-            pass
+        text = update.message.text
+        if text == "✅":
+            el = random.sample(confirmation_numbers, 1)[0]
+            confirmation_numbers.remove(el)
+            moderation_queue.put([el, ':'.join(str(datetime.now()).split(":")[:-1]), context.bot_data[uid]["longitude"], context.bot_data[uid]["latitude"], context.bot_data["description"], context.bot_data[uid]["filenames"]])
+            context.bot_data[uid]["filenames"] = []
+            update.message.reply_text(f'Отлично.\nСпасибо, что хотите сделать наш город лучше.\nСвою проблему вы сможете увидеть по ссылке: issuemaap.herokuapp.com\nНа основе вашего обращения наша команда сформирует официальное обращение к городским властям.', reply_markup=get_menu())
+        else:
+            try:
+                photo = update.message.photo[-1]
+                if photo:
+                    if "filenames" not in context.bot_data[uid]:
+                        context.bot_data[uid]["filenames"] = []
+                    if len(context.bot_data[uid]["filenames"]) < 5:
+                        el = random.sample(confirmation_numbers, 1)[0]
+                        confirmation_numbers.remove(el)
+                        filename = f"{uid}-{el}-{photo.file_id}.jpg"
+                        photo.get_file().download(filename)
+                        context.bot_data[uid]["filenames"].append(filename)
+                        update.message.reply_text(f"Фото загружено (можно добавить ещё {5 - len(context.bot_data[uid]['filenames'])})", reply_markup=ReplyKeyboardMarkup([
+                            [KeyboardButton('✅')]
+                        ]))
+                    else:
+                        el = random.sample(confirmation_numbers, 1)[0]
+                        confirmation_numbers.remove(el)
+                        moderation_queue.put([el, ':'.join(str(datetime.now()).split(":")[:-1]), context.bot_data[uid]["longitude"], context.bot_data[uid]["latitude"], context.bot_data["description"], context.bot_data[uid]["filenames"]])
+                        context.bot_data[uid]["filenames"] = []
+                        update.message.reply_text(f'Отлично.\nСпасибо, что хотите сделать наш город лучше.\nСвою проблему вы сможете увидеть по ссылке: issuemaap.herokuapp.com\nНа основе вашего обращения наша команда сформирует официальное обращение к городским властям.',
+                                                  reply_markup=get_menu())
+            except Exception as e:
+                print(e)
+                pass
     elif status == "moderation_password":
         text = update.message.text
         if text == MODERATION_PASSWORD:
@@ -201,13 +221,15 @@ def texter(update, context):
                 context.bot_data[uid]["status"] = "moderation_processing"
                 current_moderation_issue = moderation_queue.get()
                 context.bot_data[uid]["current_moderation_issue"] = current_moderation_issue
-                el, dtime, longitude, latitude, description, filename = current_moderation_issue
+                el, dtime, longitude, latitude, description, filenames = current_moderation_issue
                 update.message.reply_location(latitude=latitude, longitude=longitude)
-                update.message.reply_photo(photo=open(filename, "rb"), caption=f"ID: {el}\nДата отправки: {dtime}\nОписание: {description}",
+                update.message.reply_photo(photo=open(filenames[-1], "rb"), caption=f"ID: {el}\nДата отправки: {dtime}\nОписание: {description}",
                                            reply_markup=ReplyKeyboardMarkup([
                                                [KeyboardButton('✅'), KeyboardButton('❌')],
                                                [KeyboardButton('🏠')]
                                            ]), one_time_keyboard=True)
+                for filename in filenames[:-1]:
+                    update.message.reply_photo(photo=open(filename, "rb"))
             else:
                 context.bot_data[uid]["current_moderation_issue"] = []
                 context.bot_data[uid]["status"] = "ready"
@@ -227,21 +249,26 @@ def texter(update, context):
         if context.bot_data[uid]["current_moderation_issue"]:
             if text in ['✅', '❌']:
                 if text == '✅':
-                    s3_queue.put(context.bot_data[uid]["current_moderation_issue"][-1])
-                    context.bot_data[uid]["current_moderation_issue"][-1] = f'https://statpad-logs.s3.amazonaws.com/{context.bot_data[uid]["current_moderation_issue"][-1]}'
-                    data_queue.put(context.bot_data[uid]["current_moderation_issue"])
+                    for i in range(len(context.bot_data[uid]["current_moderation_issue"][-1])):
+                        s3_queue.put(context.bot_data[uid]["current_moderation_issue"][-1][i])
+                        context.bot_data[uid]["current_moderation_issue"][-1][i] = f'https://statpad-logs.s3.amazonaws.com/{context.bot_data[uid]["current_moderation_issue"][-1][i]}'
+                    pprint(context.bot_data[uid]["current_moderation_issue"])
                     upload_queue.put(context.bot_data[uid]["current_moderation_issue"])
+                    context.bot_data[uid]["current_moderation_issue"][-1] = " , ".join(context.bot_data[uid]["current_moderation_issue"][-1])
+                    data_queue.put(context.bot_data[uid]["current_moderation_issue"])
                 if not moderation_queue.empty():
                     context.bot_data[uid]["status"] = "moderation_processing"
                     current_moderation_issue = moderation_queue.get()
                     context.bot_data[uid]["current_moderation_issue"] = current_moderation_issue
-                    el, dtime, longitude, latitude, description, filename = current_moderation_issue
+                    el, dtime, longitude, latitude, description, filenames = current_moderation_issue
                     update.message.reply_location(latitude=latitude, longitude=longitude)
-                    update.message.reply_photo(photo=open(filename, "rb"), caption=f"ID: {el}\nДата отправки: {dtime}\nОписание: {description}",
+                    update.message.reply_photo(photo=open(filenames[-1], "rb"), caption=f"ID: {el}\nДата отправки: {dtime}\nОписание: {description}",
                                                reply_markup=ReplyKeyboardMarkup([
                                                    [KeyboardButton('✅'), KeyboardButton('❌')],
                                                    [KeyboardButton('🏠')]
                                                ]), one_time_keyboard=True)
+                    for filename in filenames[:-1]:
+                        update.message.reply_photo(photo=open(filename, "rb"))
                 else:
                     context.bot_data[uid]["current_moderation_issue"] = []
                     context.bot_data[uid]["status"] = "ready"
@@ -268,13 +295,15 @@ def moderation(update, context):
             context.bot_data[uid]["status"] = "moderation_processing"
             current_moderation_issue = moderation_queue.get()
             context.bot_data[uid]["current_moderation_issue"] = current_moderation_issue
-            el, dtime, longitude, latitude, description, filename = current_moderation_issue
+            el, dtime, longitude, latitude, description, filenames = current_moderation_issue
             update.message.reply_location(latitude=latitude, longitude=longitude)
-            update.message.reply_photo(photo=open(filename, "rb"), caption=f"ID: {el}\nДата отправки: {dtime}\nОписание: {description}",
-                                        reply_markup=ReplyKeyboardMarkup([
-                                            [KeyboardButton('✅'), KeyboardButton('❌')],
-                                            [KeyboardButton('🏠')]
-                                        ]), one_time_keyboard=True)
+            update.message.reply_photo(photo=open(filenames[-1], "rb"), caption=f"ID: {el}\nДата отправки: {dtime}\nОписание: {description}",
+                                       reply_markup=ReplyKeyboardMarkup([
+                                           [KeyboardButton('✅'), KeyboardButton('❌')],
+                                           [KeyboardButton('🏠')]
+                                       ]), one_time_keyboard=True)
+            for filename in filenames[:-1]:
+                update.message.reply_photo(photo=open(filename, "rb"))
         else:
             context.bot_data[uid]["current_moderation_issue"] = []
             context.bot_data[uid]["status"] = "ready"

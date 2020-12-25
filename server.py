@@ -9,8 +9,12 @@ mgclient = pymongo.MongoClient("mongodb+srv://admin:qwep-]123p=]@cluster0.sax3u.
 @app.route('/')
 def hello_world():
     data = mgclient.issues_data.issues.find({})
-    # pprint(data)
-    return render_template("main.html", marks=data)
+    render_data = []
+    for i in data:
+        pprint(i)
+        i["photo_links"] = i["photo_links"].split(" , ")
+        render_data.append(i)
+    return render_template("main.html", marks=render_data)
 
 
 if __name__ == '__main__':
