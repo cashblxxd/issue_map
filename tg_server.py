@@ -30,7 +30,7 @@ confirmation_numbers = set(range(100, 1000000))
 MODERATION_PASSWORD = "issueadmin54321"
 ALLOWED_UIDS = ["106052", "979206581"]
 moderators = set()
-mgclient = pymongo.MongoClient("mongodb+srv://admin:qwep-]123p=]@cluster0.sax3u.mongodb.net/Cluster0?retryWrites=true&w=majority")
+
 
 
 with open("job_data.json", "r+", encoding="utf-8") as f:
