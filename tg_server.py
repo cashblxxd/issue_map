@@ -372,7 +372,7 @@ def print_moderators(update, context):
 
 
 def main():
-    updater = Updater("1405089416:AAGaIYPG_43Jy3AoWGVmulsAYjCGIh_l1pY", use_context=True)
+    updater = Updater("TOKEN", use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("shutdown", stop))
